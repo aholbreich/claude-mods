@@ -54,6 +54,7 @@ function installHost(on: On, options: { hasLedger?: boolean; answers?: Record<st
   const registered: string[] = [];
   const runs: string[][] = [];
   const submitted: string[] = [];
+  const closed: string[] = [];
   const hasLedger = options.hasLedger ?? true;
   const answers = { "Initialize TaskLedger in this repository?": "Initialize", ...options.answers };
 
@@ -70,7 +71,10 @@ function installHost(on: On, options: { hasLedger?: boolean; answers?: Record<st
   });
   on("ui.status", () => ({ value: undefined }));
   on("ui.open", () => ({ value: { isPlaced: true } }));
-  on("ui.close", () => ({ value: undefined }));
+  on("ui.close", ($, e) => {
+    closed.push(e.id);
+    return { value: undefined };
+  });
   on("ui.toast", () => ({ value: undefined }));
   on("ui.focus", () => ({}));
   on("ui.render", { component: "AbovePrompt" }, ($, e) => {
@@ -102,7 +106,7 @@ function installHost(on: On, options: { hasLedger?: boolean; answers?: Record<st
     return output("[]");
   });
 
-  return { registered, runs, submitted };
+  return { registered, runs, submitted, closed };
 }
 
 test("registers commands and draws the actionable summary", async ($, on) => {
@@ -130,7 +134,7 @@ test("starts the first band task with a workflow hotkey", async ($, on) => {
   await $.session.start(SESSION);
 
   const ui = await $.ui.mount({ plugin: "tl", ...ABOVE_PROMPT });
-  await ui.press({ key: "tl-band-implement" });
+  await ui.press({ key: "tl-band-action-implement" });
 
   expect(host.submitted).toHaveLength(1);
   expect(host.submitted[0]).toContain("Implement task task-active.");
@@ -151,10 +155,32 @@ test("band hotkeys act on the focused task row", async ($, on) => {
     origin: { kind: "person" },
   };
   await $.ui.focus(personFocus);
-  await ui.press({ key: "tl-band-plan" });
+  await ui.press({ key: "tl-band-action-plan" });
 
   expect(host.submitted).toHaveLength(1);
   expect(host.submitted[0]).toContain("Plan implementation for task task-ready.");
+  await ui.unmount();
+});
+
+test("band focus skips the workflow buttons and wraps around the task rows", async ($, on) => {
+  const host = installHost(on);
+  await $.session.start(SESSION);
+
+  const ui = await $.ui.mount({ plugin: "tl", ...ABOVE_PROMPT });
+  const focus = (element: string): UiFocusInput => ({
+    component: "AbovePrompt",
+    requestId: ABOVE_PROMPT.requestId,
+    plugin: "tl",
+    element,
+    origin: { kind: "person" },
+  });
+  // Up from the first row would land on the last workflow button; the ring wraps to the last row instead.
+  await $.ui.focus(focus("tl-band-task-task-active"));
+  await $.ui.focus(focus("tl-band-action-plan"));
+  await ui.press({ key: "tl-band-action-implement" });
+
+  expect(host.submitted).toHaveLength(1);
+  expect(host.submitted[0]).toContain("Implement task task-ready.");
   await ui.unmount();
 });
 
@@ -170,6 +196,11 @@ test("pressing a band task opens it in the board", async ($, on) => {
   expect(rendered).toContain("Implement");
   expect(rendered).toContain("task-ready");
   await ui.unmount();
+
+  const board = await $.ui.mount({ plugin: "tl", ...PANE });
+  await board.press({ key: "close" });
+  expect(host.closed).toEqual(["tl-board"]);
+  await board.unmount();
 });
 
 test("opens and draws the task board", async ($, on) => {

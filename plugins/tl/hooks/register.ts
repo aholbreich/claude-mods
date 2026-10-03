@@ -27,6 +27,7 @@ const PANE_TITLE = "Task Ledger";
 const MAX_BAND_TASKS_PER_SECTION = 3;
 const MAX_BAND_TASK_ROWS = 9;
 const BAND_TASK_KEY_PREFIX = "tl-band-task-";
+const BAND_ACTION_KEY_PREFIX = "tl-band-action-";
 const WORKFLOW_HOTKEYS: ReadonlyArray<{ action: WorkflowAction; label: string; hotkey: string }> = [
   { action: "implement", label: "Implement", hotkey: "i" },
   { action: "refine", label: "Refine", hotkey: "r" },
@@ -56,6 +57,7 @@ let boardError: string | null = null;
 let showAll = false;
 let bandHidden = false;
 let bandSelectedId: string | null = null;
+let bandRowIds: string[] = [];
 let refreshSerial = 0;
 
 export const register: Register = (on) => {
@@ -94,7 +96,20 @@ export const register: Register = (on) => {
   });
 
   on("ui.focus", { component: "AbovePrompt" }, async ($, e, next) => {
-    if (e.element?.startsWith(BAND_TASK_KEY_PREFIX)) bandSelectedId = e.element.slice(BAND_TASK_KEY_PREFIX.length);
+    const element = e.element;
+    if (element?.startsWith(BAND_TASK_KEY_PREFIX)) {
+      bandSelectedId = element.slice(BAND_TASK_KEY_PREFIX.length);
+      return next(e);
+    }
+    // The workflow buttons exist only for their hotkeys, so the ring skips them and wraps around the task rows.
+    if (element?.startsWith(BAND_ACTION_KEY_PREFIX) && bandRowIds.length > 0) {
+      const index = bandSelectedId ? bandRowIds.indexOf(bandSelectedId) : -1;
+      const last = bandRowIds.length - 1;
+      const target = (index === last ? bandRowIds[0] : index === 0 ? bandRowIds[last] : bandRowIds[Math.max(index, 0)]) ?? null;
+      if (!target) return next(e);
+      bandSelectedId = target;
+      return next({ ...e, element: `${BAND_TASK_KEY_PREFIX}${target}` });
+    }
     return next(e);
   });
 
@@ -182,6 +197,7 @@ export const register: Register = (on) => {
       if (taskRows >= MAX_BAND_TASK_ROWS) break;
     }
 
+    bandRowIds = selectableIds;
     const band = Box({
       flexDirection: "column",
       paddingX: 1,
@@ -195,7 +211,7 @@ export const register: Register = (on) => {
           children: [
             ...(selectableIds.length > 0
               ? WORKFLOW_HOTKEYS.map(({ action, label, hotkey }) => Button({
-                key: `tl-band-${action}`,
+                key: `${BAND_ACTION_KEY_PREFIX}${action}`,
                 label,
                 hotkey,
                 plain: true,
@@ -267,8 +283,10 @@ export const register: Register = (on) => {
                 Button({ key: "cancel", label: "Cancel task", hotkey: "c", plain: true, onPress: async () => lifecycleTask($, "cancel", id) }),
                 Button({ key: "remove", label: "Remove task", hotkey: "x", plain: true, onPress: async () => lifecycleTask($, "remove", id) }),
               ] : []),
+              Button({ key: "close", label: "Close", hotkey: "q", plain: true, role: "dismiss", onPress: async () => $.ui.close({ id: PANE_ID }) }),
             ],
           }),
+          Text({ dimColor: true, children: "b back to list · q or Esc close" }),
         ],
       });
     }
@@ -313,10 +331,11 @@ export const register: Register = (on) => {
               redraw();
             } }),
             Button({ key: "refresh", label: "Refresh", hotkey: "u", plain: true, onPress: async () => loadBoard($) }),
+            Button({ key: "close", label: "Close", hotkey: "q", plain: true, role: "dismiss", onPress: async () => $.ui.close({ id: PANE_ID }) }),
           ],
         }),
         ...(sectionTrees.length > 0 ? sectionTrees : [Text({ dimColor: true, children: "No tasks in this view." })]),
-        Text({ dimColor: true, children: "↑/↓ navigate · Enter select · Esc close" }),
+        Text({ dimColor: true, children: "↑/↓ navigate · Enter select · q or Esc close" }),
       ],
     });
   });

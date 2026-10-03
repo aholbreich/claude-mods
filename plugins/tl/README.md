@@ -30,9 +30,9 @@ A native Claude Code integration for [`tl`](https://github.com/aholbreich/tl), t
 | `/tl-capture <rough todos>` | Ask Claude to refine rough todos into tasks |
 | `/tl-triage` | Ask Claude to review ledger health without mutating it |
 
-In the summary above the prompt, press `ctrl+x tab` to move the keyboard into it, `↑`/`↓` to select a task, then `i`, `r`, `v`, or `p` to implement, refine, review, or plan it; with no row selected they act on the first task. Enter on a task opens it in the board, and Esc returns to the prompt.
+In the summary above the prompt, press `ctrl+x tab` to move the keyboard into it, `↑`/`↓` to select a task, then `i`, `r`, `v`, or `p` to implement, refine, review, or plan it; with no row selected they act on the first task. Focus moves only over task rows, wrapping at either end. Enter on a task opens it in the board, and Esc returns to the prompt.
 
-Inside the board, use `↑`/`↓` and Enter to navigate controls. In task details, `i`, `r`, `v`, and `p` start implementation, refinement, review, and planning; `c` and `x` cancel or remove after confirmation.
+Inside the board, use `↑`/`↓` and Enter to navigate controls. In task details, `i`, `r`, `v`, and `p` start implementation, refinement, review, and planning; `c` and `x` cancel or remove after confirmation. `b` goes back to the list, and `q` or Esc closes the board.
 
 ## Development
 
