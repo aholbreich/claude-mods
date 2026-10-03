@@ -219,16 +219,16 @@ export function register(on: On) {
             flexWrap: "wrap",
             columnGap: 2,
             children: [
-              Button({ key: "back", label: "b: Back", hotkey: "b", plain: true, autoFocus: true, onPress: () => {
+              Button({ key: "back", label: "Back", hotkey: "b", plain: true, autoFocus: true, onPress: () => {
                 boardMode = "list";
                 redraw();
               } }),
-              Button({ key: "implement", label: "i: Implement", hotkey: "i", plain: true, onPress: action("implement") }),
-              Button({ key: "refine", label: "r: Refine", hotkey: "r", plain: true, onPress: action("refine") }),
-              Button({ key: "review", label: "v: Review", hotkey: "v", plain: true, onPress: action("review") }),
-              Button({ key: "plan", label: "p: Plan", hotkey: "p", plain: true, onPress: action("plan") }),
-              Button({ key: "cancel", label: "c: Cancel task", hotkey: "c", plain: true, onPress: async () => lifecycleTask($, "cancel", id) }),
-              Button({ key: "remove", label: "x: Remove task", hotkey: "x", plain: true, onPress: async () => lifecycleTask($, "remove", id) }),
+              Button({ key: "implement", label: "Implement", hotkey: "i", plain: true, onPress: action("implement") }),
+              Button({ key: "refine", label: "Refine", hotkey: "r", plain: true, onPress: action("refine") }),
+              Button({ key: "review", label: "Review", hotkey: "v", plain: true, onPress: action("review") }),
+              Button({ key: "plan", label: "Plan", hotkey: "p", plain: true, onPress: action("plan") }),
+              Button({ key: "cancel", label: "Cancel task", hotkey: "c", plain: true, onPress: async () => lifecycleTask($, "cancel", id) }),
+              Button({ key: "remove", label: "Remove task", hotkey: "x", plain: true, onPress: async () => lifecycleTask($, "remove", id) }),
             ],
           }),
         ],
@@ -270,11 +270,11 @@ export function register(on: On) {
           flexDirection: "row",
           columnGap: 2,
           children: [
-            Button({ key: "toggle-all", label: showAll ? "a: Focused" : "a: Show all", hotkey: "a", plain: true, onPress: () => {
+            Button({ key: "toggle-all", label: showAll ? "Focused" : "Show all", hotkey: "a", plain: true, onPress: () => {
               showAll = !showAll;
               redraw();
             } }),
-            Button({ key: "refresh", label: "u: Refresh", hotkey: "u", plain: true, onPress: async () => loadBoard($) }),
+            Button({ key: "refresh", label: "Refresh", hotkey: "u", plain: true, onPress: async () => loadBoard($) }),
           ],
         }),
         ...(sectionTrees.length > 0 ? sectionTrees : [Text({ dimColor: true, children: "No tasks in this view." })]),
