@@ -41,3 +41,5 @@
 {"time":"2026-10-03T21:55:21Z","event":"note_added","task_id":"task-2z2","actor":"claude"}
 {"time":"2026-10-03T21:55:25Z","event":"pending_requested","task_id":"task-2z2","actor":"claude"}
 {"time":"2026-10-03T22:07:39Z","event":"note_added","task_id":"task-2z2","actor":"claude"}
+{"time":"2026-10-03T22:14:30Z","event":"pending_resolved","task_id":"task-2z2","actor":"claude"}
+{"time":"2026-10-03T22:14:30Z","event":"closed","task_id":"task-2z2","actor":"claude"}
