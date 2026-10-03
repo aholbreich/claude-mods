@@ -71,6 +71,9 @@ function installHost(on: Parameters<Parameters<typeof test>[1]>[1], options: { h
     if (words === "list --status in_progress --json") {
       return { value: { exitCode: 0, stdout: JSON.stringify([{ id: "task-active", title: "Write tests", status: "in_progress", priority: "medium" }]), stderr: "" } };
     }
+    if (words === "stale --json") {
+      return { value: { exitCode: 0, stdout: "null\n", stderr: "" } };
+    }
     if (words === "list --all --json") {
       return { value: { exitCode: 0, stdout: JSON.stringify([
         { id: "task-ready", title: "Ship the mod", status: "open", priority: "high" },

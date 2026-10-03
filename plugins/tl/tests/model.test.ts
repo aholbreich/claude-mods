@@ -15,7 +15,8 @@ describe("TaskLedger model", () => {
     expect(isTlVersionCompatible("0.8.9")).toBe(false);
   });
 
-  test("rejects non-list JSON", () => {
+  test("accepts null as an empty task list and rejects objects", () => {
+    expect(tasksFromJson("null", "tl stale --json")).toEqual([]);
     expect(() => tasksFromJson("{}", "tl ready --json")).toThrow("not a task list");
   });
 

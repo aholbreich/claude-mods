@@ -39,6 +39,7 @@ export function tasksFromJson(text: string, command: string): TaskSummary[] {
   } catch (error) {
     throw new Error(`${command} returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
+  if (parsed === null) return [];
   if (!Array.isArray(parsed)) throw new Error(`${command} returned JSON that is not a task list`);
   return parsed.filter((item): item is TaskSummary => typeof item === "object" && item !== null);
 }
