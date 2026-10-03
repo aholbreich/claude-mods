@@ -1,10 +1,10 @@
 {
   "name": "aholbreich-claude-mods",
   "owner": {
-    "name": "Alexander Hobreich"
+    "name": "Alexander Holbreich"
   },
   "metadata": {
-    "description": "Claude Code mods maintained by Alexander Hobreich."
+    "description": "Claude Code mods maintained by Alexander Holbreich."
   },
   "plugins": [
     {

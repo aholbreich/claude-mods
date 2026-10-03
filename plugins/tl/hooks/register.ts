@@ -1,4 +1,4 @@
-import type { EngineInterface, On, ProcessRunResult } from "claude-code";
+import type { EngineInterface, ProcessRunResult, Register } from "claude-code";
 import {
   EMPTY_SNAPSHOT,
   MIN_TL_VERSION,
@@ -48,7 +48,7 @@ let showAll = false;
 let bandHidden = false;
 let refreshSerial = 0;
 
-export function register(on: On) {
+export const register: Register = (on) => {
   on("session.start", async ($, e, next) => {
     await registerCommands($);
     const result = await next(e);
@@ -81,6 +81,7 @@ export function register(on: On) {
     if (environment.kind !== "ready") return { text: environmentMessage(environment) };
     await loadBoard($);
     boardMode = "list";
+    showAll = prefersAllView(sections);
     await $.ui.open({
       id: PANE_ID,
       title: PANE_TITLE,
@@ -120,20 +121,16 @@ export function register(on: On) {
   });
 
   on("command.run", { command: "tl-capture" }, async ($, e) => {
-    let todos = e.args.trim();
-    if (!todos) {
-      const captured = await askSafely($, "What tasks should be captured?", ["Cancel"]);
-      if (!captured || captured === "Cancel") return { text: "No tasks captured." };
-      todos = captured.trim();
-    }
-    void $.prompt.submit({ text: buildCapturePrompt(todos) });
-    return {};
+    const todos = e.args.trim();
+    if (!todos) return { text: "Usage: /tl-capture <rough todos>" };
+    submitAfterCommand($, buildCapturePrompt(todos));
+    return { text: "Asking Claude to turn these todos into tasks." };
   });
 
   on("command.run", { command: "tl-triage" }, async ($) => {
     if (!(await $.fs.exists(".tl"))) return { text: "No task ledger found. Run /tl-init first." };
-    void $.prompt.submit({ text: buildTriagePrompt() });
-    return {};
+    submitAfterCommand($, buildTriagePrompt());
+    return { text: "Asking Claude to triage the task ledger." };
   });
 
   on("ui.render", { component: "AbovePrompt" }, async ($, e, next) => {
@@ -227,8 +224,10 @@ export function register(on: On) {
               Button({ key: "refine", label: "Refine", hotkey: "r", plain: true, onPress: action("refine") }),
               Button({ key: "review", label: "Review", hotkey: "v", plain: true, onPress: action("review") }),
               Button({ key: "plan", label: "Plan", hotkey: "p", plain: true, onPress: action("plan") }),
-              Button({ key: "cancel", label: "Cancel task", hotkey: "c", plain: true, onPress: async () => lifecycleTask($, "cancel", id) }),
-              Button({ key: "remove", label: "Remove task", hotkey: "x", plain: true, onPress: async () => lifecycleTask($, "remove", id) }),
+              ...(id ? [
+                Button({ key: "cancel", label: "Cancel task", hotkey: "c", plain: true, onPress: async () => lifecycleTask($, "cancel", id) }),
+                Button({ key: "remove", label: "Remove task", hotkey: "x", plain: true, onPress: async () => lifecycleTask($, "remove", id) }),
+              ] : []),
             ],
           }),
         ],
@@ -282,7 +281,7 @@ export function register(on: On) {
       ],
     });
   });
-}
+};
 
 async function registerCommands($: EngineInterface): Promise<void> {
   const commands = [
@@ -290,7 +289,7 @@ async function registerCommands($: EngineInterface): Promise<void> {
     { name: "tl-refresh", description: "Refresh TaskLedger data", immediate: true },
     { name: "tl-toggle", description: "Hide or show the TaskLedger summary", immediate: true },
     { name: "tl-init", description: "Initialize TaskLedger in this repository", immediate: true },
-    { name: "tl-capture", description: "Capture rough todos and ask Claude to refine them", argumentHint: "[rough todos]" },
+    { name: "tl-capture", description: "Capture rough todos and ask Claude to refine them", argumentHint: "<rough todos>" },
     { name: "tl-triage", description: "Ask Claude to triage the task ledger" },
   ] as const;
   for (const command of commands) {
@@ -325,6 +324,7 @@ async function listTasks($: EngineInterface, args: string[]): Promise<TaskSummar
   const run = await runTl($, args, 10_000);
   const command = `tl ${args.join(" ")}`;
   if (run.exitCode !== 0) throw new Error(run.stderr.trim() || run.stdout.trim() || `${command} failed with exit code ${run.exitCode}`);
+  if (run.isStdoutTruncated) throw new Error(`${command} output exceeded the process output limit`);
   return tasksFromJson(run.stdout, command);
 }
 
@@ -371,9 +371,6 @@ async function loadBoard($: EngineInterface): Promise<void> {
       listTasks($, ["stale", "--json"]),
     ]);
     sections = boardSections(inventory, ready, stale);
-    const focusedCount = focusedSections(sections, false).reduce((sum, section) => sum + section.tasks.length, 0);
-    const allCount = sections.reduce((sum, section) => sum + section.tasks.length, 0);
-    if (focusedCount <= 1 && allCount > focusedCount) showAll = true;
   } catch (error) {
     boardError = messageOf(error);
   } finally {
@@ -405,10 +402,10 @@ async function lifecycleTask($: EngineInterface, action: "cancel" | "remove", id
   const verb = action === "cancel" ? "Cancel" : "Remove permanently";
   const answer = await askSafely($, `${verb} ${id}?`, [verb, "Keep task"]);
   if (answer !== verb) return;
-  const reasonAnswer = await askSafely($, `Why ${action} ${id}?`, ["No additional reason"]);
-  if (!reasonAnswer) return;
+  const reasonAnswer = await askSafely($, `Why ${action} ${id}: use the default reason, or type your own under Other?`, ["Use default reason", "Keep task"]);
+  if (!reasonAnswer || reasonAnswer === "Keep task") return;
   const defaultReason = action === "cancel" ? "cancelled from Claude TaskLedger board" : "removed from Claude TaskLedger board";
-  const reason = reasonAnswer === "No additional reason" ? defaultReason : reasonAnswer;
+  const reason = reasonAnswer === "Use default reason" ? defaultReason : reasonAnswer.trim() || defaultReason;
   const args = [action, id, "--message", reason];
   if (action === "remove") args.push("--force");
   try {
@@ -424,6 +421,13 @@ async function lifecycleTask($: EngineInterface, action: "cancel" | "remove", id
   } catch (error) {
     $.ui.toast(`${verb} failed: ${messageOf(error)}`);
   }
+}
+
+// A command.run hook holds the turn that a prompt submitted from it would wait on, so submit once it returns.
+function submitAfterCommand($: EngineInterface, text: string): void {
+  $.clock.after(0, () => {
+    $.prompt.submit({ text }).catch((error) => $.ui.toast(`Could not submit prompt: ${messageOf(error)}`));
+  });
 }
 
 async function askSafely($: EngineInterface, question: string, options?: readonly string[]): Promise<string | null> {
@@ -456,6 +460,12 @@ function summaryMessage(): string {
     .filter((section) => section.tasks.length > 0)
     .map((section) => `${section.tasks.length} ${section.label.toLowerCase()}`);
   return parts.length > 0 ? `TaskLedger refreshed: ${parts.join(", ")}.` : "TaskLedger refreshed: no actionable tasks.";
+}
+
+function prefersAllView(value: TaskSection[]): boolean {
+  const focusedCount = focusedSections(value, false).reduce((sum, section) => sum + section.tasks.length, 0);
+  const allCount = value.reduce((sum, section) => sum + section.tasks.length, 0);
+  return focusedCount <= 1 && allCount > focusedCount;
 }
 
 function hasSnapshotContent(value: Snapshot): boolean {

@@ -48,18 +48,20 @@ export function parseTlVersion(output: string): string | null {
   const match = /^(?:tl(?:\s+version)?\s+)?v?((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)$/.exec(output.trim());
   if (!match) return null;
   if (match[2]?.split(".").some((part) => /^0\d+$/.test(part))) return null;
-  return match[1];
+  return match[1] ?? null;
 }
 
 export function isTlVersionCompatible(version: string): boolean {
   const parsed = parseTlVersion(version);
   if (parsed === null) return false;
-  const [core, ...suffixParts] = parsed.split("+")[0].split("-");
+  const [core = "", ...suffixParts] = (parsed.split("+")[0] ?? "").split("-");
   const suffix = suffixParts.join("-");
   const installed = core.split(".").map(Number);
   const minimum = MIN_TL_VERSION.split(".").map(Number);
   for (let index = 0; index < minimum.length; index += 1) {
-    if (installed[index] !== minimum[index]) return installed[index] > minimum[index];
+    const have = installed[index] ?? 0;
+    const need = minimum[index] ?? 0;
+    if (have !== need) return have > need;
   }
   return suffix === "" || /^(?:0|[1-9]\d*)-[0-9a-f]{4,64}$/i.test(suffix);
 }

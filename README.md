@@ -1,4 +1,4 @@
-# Claude Mods by Alexander Hobreich
+# Claude Mods by Alexander Holbreich
 
 A personal marketplace of native [Claude Code mods](https://code.claude.com/docs/en/plugins/mods/overview).
 

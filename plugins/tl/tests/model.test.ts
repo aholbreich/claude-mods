@@ -4,6 +4,7 @@ import {
   isTlVersionCompatible,
   parseTlVersion,
   tasksFromJson,
+  type TaskSummary,
 } from "../hooks/model";
 
 describe("TaskLedger model", () => {
@@ -21,13 +22,13 @@ describe("TaskLedger model", () => {
   });
 
   test("places each inventory task in one authoritative board section", () => {
-    const inventory = [
+    const inventory: TaskSummary[] = [
       { id: "ready", title: "Ready", status: "open" },
       { id: "waiting", title: "Waiting", status: "open" },
       { id: "stale", title: "Stale", status: "in_progress" },
       { id: "done", title: "Done", status: "done" },
     ];
-    const sections = boardSections(inventory, [inventory[0]], [inventory[2]]);
+    const sections = boardSections(inventory, inventory.slice(0, 1), inventory.slice(2, 3));
     const ids = (label: string) => sections.find((section) => section.label === label)?.tasks.map((task) => task.id);
 
     expect(ids("Ready")).toEqual(["ready"]);

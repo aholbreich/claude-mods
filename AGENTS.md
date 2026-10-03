@@ -1,6 +1,6 @@
 # Project entry point
 
-Claude Code mod marketplace maintained by Alexander Hobreich.
+Claude Code mod marketplace maintained by Alexander Holbreich.
 
 ## Layout
 

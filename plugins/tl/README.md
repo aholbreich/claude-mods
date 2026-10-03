@@ -26,7 +26,7 @@ A native Claude Code integration for [`tl`](https://github.com/aholbreich/tl), t
 | `/tl-refresh` | Reload summary and board data |
 | `/tl-toggle` | Hide or show the summary for this session |
 | `/tl-init` | Initialize `.tl/` after confirmation |
-| `/tl-capture [rough todos]` | Ask Claude to refine rough todos into tasks |
+| `/tl-capture <rough todos>` | Ask Claude to refine rough todos into tasks |
 | `/tl-triage` | Ask Claude to review ledger health without mutating it |
 
 Inside the board, use `↑`/`↓` and Enter to navigate controls. In task details, `i`, `r`, `v`, and `p` start implementation, refinement, review, and planning; `c` and `x` cancel or remove after confirmation.

@@ -1,9 +1,9 @@
 {
   "name": "tl",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Native TaskLedger summary and interactive task board for Claude Code.",
   "author": {
-    "name": "Alexander Hobreich"
+    "name": "Alexander Holbreich"
   },
   "repository": "https://github.com/aholbreich/claude-mods",
   "license": "MIT",
