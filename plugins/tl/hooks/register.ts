@@ -13,7 +13,9 @@ import {
   snapshotSections,
   taskId,
   taskLabel,
+  taskText,
   tasksFromJson,
+  truncate,
   type Snapshot,
   type TaskSection,
   type TaskSummary,
@@ -24,6 +26,13 @@ const PANE_ID = "tl-board";
 const PANE_TITLE = "Task Ledger";
 const MAX_BAND_TASKS_PER_SECTION = 3;
 const MAX_BAND_TASK_ROWS = 9;
+const BAND_TASK_KEY_PREFIX = "tl-band-task-";
+const WORKFLOW_HOTKEYS: ReadonlyArray<{ action: WorkflowAction; label: string; hotkey: string }> = [
+  { action: "implement", label: "Implement", hotkey: "i" },
+  { action: "refine", label: "Refine", hotkey: "r" },
+  { action: "review", label: "Review", hotkey: "v" },
+  { action: "plan", label: "Plan", hotkey: "p" },
+];
 
 type EnvironmentState =
   | { kind: "loading" }
@@ -46,6 +55,7 @@ let boardLoading = false;
 let boardError: string | null = null;
 let showAll = false;
 let bandHidden = false;
+let bandSelectedId: string | null = null;
 let refreshSerial = 0;
 
 export const register: Register = (on) => {
@@ -79,19 +89,13 @@ export const register: Register = (on) => {
   on("command.run", { command: "tl-board" }, async ($) => {
     await refreshSummary($);
     if (environment.kind !== "ready") return { text: environmentMessage(environment) };
-    await loadBoard($);
-    boardMode = "list";
-    showAll = prefersAllView(sections);
-    await $.ui.open({
-      id: PANE_ID,
-      title: PANE_TITLE,
-      focus: true,
-      closeOnEscape: true,
-      holdToasts: true,
-      rows: 24,
-      columns: 76,
-    });
+    await openBoard($);
     return {};
+  });
+
+  on("ui.focus", { component: "AbovePrompt" }, async ($, e, next) => {
+    if (e.element?.startsWith(BAND_TASK_KEY_PREFIX)) bandSelectedId = e.element.slice(BAND_TASK_KEY_PREFIX.length);
+    return next(e);
   });
 
   on("command.run", { command: "tl-refresh" }, async ($) => {
@@ -139,17 +143,35 @@ export const register: Register = (on) => {
     }
 
     const downstream = await next(e);
-    const { Box, Text } = $.ui.resolve(e);
+    const { Box, Text, Button } = $.ui.resolve(e);
     const nonEmpty = snapshotSections(snapshot).filter((section) => section.tasks.length > 0);
     const summary = nonEmpty.map((section) => `${section.icon}${section.tasks.length} ${section.label.toLowerCase()}`).join(" · ");
     const rows = [];
+    const selectableIds: string[] = [];
     let taskRows = 0;
 
     for (const section of nonEmpty) {
       const visible = section.tasks.slice(0, MAX_BAND_TASKS_PER_SECTION);
       for (const task of visible) {
         if (taskRows >= MAX_BAND_TASK_ROWS) break;
-        rows.push(Text({ color: section.color, wrap: "truncate-end", children: taskLabel(task, section.icon) }));
+        const id = taskId(task);
+        if (id && !selectableIds.includes(id)) {
+          selectableIds.push(id);
+          rows.push(Box({
+            flexDirection: "row",
+            children: [
+              Text({ color: section.color, children: `${section.icon} ` }),
+              Button({
+                key: `${BAND_TASK_KEY_PREFIX}${id}`,
+                label: truncate(taskText(task), e.props.bodyColumns - 4),
+                plain: true,
+                onPress: async () => openBoardFromBand($, task),
+              }),
+            ],
+          }));
+        } else {
+          rows.push(Text({ color: section.color, wrap: "truncate-end", children: taskLabel(task, section.icon) }));
+        }
         taskRows += 1;
       }
       const remaining = section.tasks.length - visible.length;
@@ -166,7 +188,24 @@ export const register: Register = (on) => {
       children: [
         Text({ color: "cyan", bold: true, children: `● Task Ledger  ${summary}` }),
         ...rows,
-        Text({ dimColor: true, children: "/tl-board to browse · /tl-toggle to hide" }),
+        Box({
+          flexDirection: "row",
+          flexWrap: "wrap",
+          columnGap: 2,
+          children: [
+            ...(selectableIds.length > 0
+              ? WORKFLOW_HOTKEYS.map(({ action, label, hotkey }) => Button({
+                key: `tl-band-${action}`,
+                label,
+                hotkey,
+                plain: true,
+                dimColor: true,
+                onPress: () => startBandWorkflow($, selectableIds, action),
+              }))
+              : []),
+            Text({ dimColor: true, children: "ctrl+x tab to select · /tl-board · /tl-toggle" }),
+          ],
+        }),
       ],
     });
     return Box({
@@ -377,6 +416,37 @@ async function loadBoard($: EngineInterface): Promise<void> {
     boardLoading = false;
     $.ui.invalidate("ui.render");
   }
+}
+
+async function openBoard($: EngineInterface, task?: TaskSummary): Promise<void> {
+  await loadBoard($);
+  boardMode = "list";
+  showAll = prefersAllView(sections);
+  if (task) await showTaskDetails($, task);
+  await $.ui.open({
+    id: PANE_ID,
+    title: PANE_TITLE,
+    focus: true,
+    closeOnEscape: true,
+    holdToasts: true,
+    rows: 24,
+    columns: 76,
+  });
+}
+
+async function openBoardFromBand($: EngineInterface, task: TaskSummary): Promise<void> {
+  try {
+    await openBoard($, task);
+  } catch (error) {
+    $.ui.toast(`Could not open the board: ${messageOf(error)}`);
+  }
+}
+
+// The band's workflow hotkeys act on the row last focused with ctrl+x tab and the arrows, else the first row.
+function startBandWorkflow($: EngineInterface, selectableIds: readonly string[], action: WorkflowAction): void {
+  const id = bandSelectedId && selectableIds.includes(bandSelectedId) ? bandSelectedId : selectableIds[0];
+  if (!id) return;
+  $.prompt.submit({ text: buildTaskWorkflowPrompt(id, action) }).catch((error) => $.ui.toast(`Could not submit prompt: ${messageOf(error)}`));
 }
 
 async function showTaskDetails($: EngineInterface, task: TaskSummary): Promise<void> {

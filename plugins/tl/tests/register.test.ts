@@ -1,4 +1,4 @@
-import type { CommandRunInput, On, ProcessRunResult, RenderInput, SessionStartInput } from "claude-code";
+import type { CommandRunInput, On, ProcessRunResult, RenderInput, SessionStartInput, UiFocusInput } from "claude-code";
 import { expect, mock, test } from "claude-code/testing";
 
 const SESSION: SessionStartInput = {
@@ -72,6 +72,7 @@ function installHost(on: On, options: { hasLedger?: boolean; answers?: Record<st
   on("ui.open", () => ({ value: { isPlaced: true } }));
   on("ui.close", () => ({ value: undefined }));
   on("ui.toast", () => ({ value: undefined }));
+  on("ui.focus", () => ({}));
   on("ui.render", { component: "AbovePrompt" }, ($, e) => {
     const { Text } = $.ui.resolve(e);
     return Text({ children: "" });
@@ -122,6 +123,53 @@ test("registers commands and draws the actionable summary", async ($, on) => {
   expect(rendered).toContain("task-ready");
   expect(rendered).toContain("Ship the mod");
   expect(rendered).toContain("task-active");
+});
+
+test("starts the first band task with a workflow hotkey", async ($, on) => {
+  const host = installHost(on);
+  await $.session.start(SESSION);
+
+  const ui = await $.ui.mount({ plugin: "tl", ...ABOVE_PROMPT });
+  await ui.press({ key: "tl-band-implement" });
+
+  expect(host.submitted).toHaveLength(1);
+  expect(host.submitted[0]).toContain("Implement task task-active.");
+  await ui.unmount();
+});
+
+test("band hotkeys act on the focused task row", async ($, on) => {
+  const host = installHost(on);
+  await $.session.start(SESSION);
+
+  const ui = await $.ui.mount({ plugin: "tl", ...ABOVE_PROMPT });
+  // The person's arrow keys moving the band's focus ring onto a row.
+  const personFocus: UiFocusInput = {
+    component: "AbovePrompt",
+    requestId: ABOVE_PROMPT.requestId,
+    plugin: "tl",
+    element: "tl-band-task-task-ready",
+    origin: { kind: "person" },
+  };
+  await $.ui.focus(personFocus);
+  await ui.press({ key: "tl-band-plan" });
+
+  expect(host.submitted).toHaveLength(1);
+  expect(host.submitted[0]).toContain("Plan implementation for task task-ready.");
+  await ui.unmount();
+});
+
+test("pressing a band task opens it in the board", async ($, on) => {
+  const host = installHost(on);
+  await $.session.start(SESSION);
+
+  const ui = await $.ui.mount({ plugin: "tl", ...ABOVE_PROMPT });
+  await ui.press({ key: "tl-band-task-task-ready" });
+
+  expect(host.runs).toContainEqual(["tl", "--color", "never", "show", "task-ready"]);
+  const rendered = JSON.stringify(await $.ui.render(PANE));
+  expect(rendered).toContain("Implement");
+  expect(rendered).toContain("task-ready");
+  await ui.unmount();
 });
 
 test("opens and draws the task board", async ($, on) => {

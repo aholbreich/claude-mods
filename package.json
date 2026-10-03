@@ -1,6 +1,6 @@
 {
   "name": "aholbreich-claude-mods",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "type": "module",
   "description": "Claude Code mod marketplace maintained by Alexander Holbreich.",

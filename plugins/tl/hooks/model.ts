@@ -77,10 +77,20 @@ export function priorityMarker(priority: unknown): string {
   return "▽";
 }
 
-export function taskLabel(task: TaskSummary, icon = "·"): string {
+export function taskText(task: TaskSummary): string {
   const id = taskId(task) ?? "unknown";
   const title = typeof task.title === "string" ? task.title : "(untitled)";
-  return `${icon} ${id} ${priorityMarker(task.priority)} ${title}`;
+  return `${id} ${priorityMarker(task.priority)} ${title}`;
+}
+
+export function taskLabel(task: TaskSummary, icon = "·"): string {
+  return `${icon} ${taskText(task)}`;
+}
+
+export function truncate(text: string, columns: number): string {
+  if (columns < 1) return "";
+  const chars = [...text];
+  return chars.length <= columns ? text : `${chars.slice(0, columns - 1).join("")}…`;
 }
 
 export function snapshotSections(snapshot: Snapshot): TaskSection[] {

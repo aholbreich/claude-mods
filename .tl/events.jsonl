@@ -31,3 +31,12 @@
 {"time":"2026-10-03T21:08:17Z","event":"claimed","task_id":"task-bhd","actor":"claude"}
 {"time":"2026-10-03T21:11:01Z","event":"note_added","task_id":"task-bhd","actor":"claude"}
 {"time":"2026-10-03T21:17:26Z","event":"closed","task_id":"task-bhd","actor":"claude"}
+{"time":"2026-10-03T21:42:49Z","event":"created","task_id":"task-lro","actor":"claude"}
+{"time":"2026-10-03T21:48:18Z","event":"created","task_id":"task-2ju","actor":"claude"}
+{"time":"2026-10-03T21:48:18Z","event":"reference_added","task_id":"task-2ju","actor":"claude","value":"plugins/tl/hooks/register.ts"}
+{"time":"2026-10-03T21:48:18Z","event":"reference_added","task_id":"task-2ju","actor":"claude","value":"plugins/tl/hooks/model.ts"}
+{"time":"2026-10-03T21:52:20Z","event":"created","task_id":"task-2z2","actor":"claude"}
+{"time":"2026-10-03T21:52:20Z","event":"reference_added","task_id":"task-2z2","actor":"claude","value":"plugins/tl/hooks/register.ts"}
+{"time":"2026-10-03T21:52:20Z","event":"claimed","task_id":"task-2z2","actor":"claude"}
+{"time":"2026-10-03T21:55:21Z","event":"note_added","task_id":"task-2z2","actor":"claude"}
+{"time":"2026-10-03T21:55:25Z","event":"pending_requested","task_id":"task-2z2","actor":"claude"}
