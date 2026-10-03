@@ -1,0 +1,13 @@
+{
+  "name": "aholbreich-claude-mods",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude Code mod marketplace maintained by Alexander Hobreich.",
+  "license": "MIT",
+  "scripts": {
+    "validate": "claude plugin validate . --strict && claude plugin validate plugins/tl --strict",
+    "test": "claude plugin test plugins/tl",
+    "check": "npm run validate && npm test"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "description": "TaskLedger summary band, interactive board, lifecycle commands, and repository workflow context.",
+  "modules": [
+    "./register.ts"
+  ]
+}

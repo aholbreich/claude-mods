@@ -1,0 +1,16 @@
+{
+  "name": "aholbreich-claude-mods",
+  "owner": {
+    "name": "Alexander Hobreich"
+  },
+  "metadata": {
+    "description": "Claude Code mods maintained by Alexander Hobreich."
+  },
+  "plugins": [
+    {
+      "name": "tl",
+      "source": "./plugins/tl",
+      "description": "Native TaskLedger summary and interactive task board for Claude Code."
+    }
+  ]
+}
